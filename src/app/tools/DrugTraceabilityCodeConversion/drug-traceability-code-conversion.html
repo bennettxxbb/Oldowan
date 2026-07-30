@@ -1,0 +1,81 @@
+<div class="tool-container">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>药品追溯码转XML工具</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- File Upload -->
+      <div class="field-row">
+        <label class="field-label">上传Excel文件</label>
+        <div class="file-upload-row">
+          <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileChange($event)" />
+          <button mat-stroked-button type="button" (click)="fileInput.click()">选择文件</button>
+          @if (selectedFileName()) {
+            <span class="file-name">{{ selectedFileName() }}</span>
+            <button mat-button type="button" (click)="clearFile()">清除</button>
+          }
+        </div>
+      </div>
+
+      <!-- Actor -->
+      <mat-form-field appearance="outline">
+        <mat-label>Actor</mat-label>
+        <input matInput [(ngModel)]="actor" />
+      </mat-form-field>
+
+      <!-- ActDate + ActTime -->
+      <div class="date-time-row">
+        <mat-form-field appearance="outline">
+          <mat-label>调账出库日期</mat-label>
+          <input matInput [matDatepicker]="picker" [(ngModel)]="actDate" />
+          <mat-datepicker-toggle matSuffix [for]="picker" />
+          <mat-datepicker #picker />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>时间</mat-label>
+          <input matInput type="time" step="1" [(ngModel)]="actTime" />
+        </mat-form-field>
+      </div>
+
+      <!-- ToCorpID -->
+      <mat-form-field appearance="outline">
+        <mat-label>ToCorpID</mat-label>
+        <input matInput [(ngModel)]="toCorpID" />
+      </mat-form-field>
+
+      <!-- CorpOrderID -->
+      <mat-form-field appearance="outline">
+        <mat-label>合同号</mat-label>
+        <input matInput [(ngModel)]="corpOrderID" />
+      </mat-form-field>
+
+      <!-- Actions -->
+      <div class="button-row">
+        <button
+          mat-raised-button
+          color="primary"
+          [disabled]="parsedCodes().length === 0"
+          (click)="generateXml()"
+        >
+          生成XML
+        </button>
+        <button
+          mat-stroked-button
+          [disabled]="!generatedXml()"
+          (click)="downloadXml()"
+        >
+          下载XML
+        </button>
+      </div>
+
+      <!-- XML Preview -->
+      @if (generatedXml()) {
+        <mat-form-field appearance="outline">
+          <mat-label>XML预览 ({{ parsedCodes().length }} 条记录)</mat-label>
+          <textarea matInput [value]="generatedXml()" rows="15" readonly></textarea>
+        </mat-form-field>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
