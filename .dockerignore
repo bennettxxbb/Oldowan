@@ -1,0 +1,15 @@
+node_modules
+.git
+.gitignore
+*.md
+.vscode
+.idea
+.editorconfig
+dist
+coverage
+.DS_Store
+docker-compose*.yml
+Dockerfile*
+nginx.conf
+.github
+.cache
