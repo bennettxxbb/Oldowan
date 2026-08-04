@@ -10,6 +10,5 @@ coverage
 .DS_Store
 docker-compose*.yml
 Dockerfile*
-nginx.conf
 .github
 .cache

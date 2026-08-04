@@ -1,3 +1,8 @@
+# OCI labels — GitHub uses source to link the package to the repo
+LABEL org.opencontainers.image.source="https://github.com/bennettxxbb/Oldowan"
+LABEL org.opencontainers.image.description="Oldowan web frontend"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Stage 1: Build the Angular application
 FROM node:22-bookworm-slim AS build
 
