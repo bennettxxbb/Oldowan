@@ -8,7 +8,6 @@ on:
 jobs:
   welcome:
     runs-on: ars-oldowan
-    container: debian:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
