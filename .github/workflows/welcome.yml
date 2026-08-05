@@ -1,0 +1,34 @@
+name: Welcome
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  welcome:
+    runs-on: ars-oldowan
+    container: debian:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Welcome Message
+        run: |
+          echo "👋 Hello from the self-hosted runner!"
+          echo ""
+          echo "Runner Info:"
+          echo "  Hostname : $(hostname)"
+          echo "  OS       : $(uname -s) $(uname -r)"
+          echo "  Arch     : $(uname -m)"
+          echo "  CPU      : $(nproc) core(s)"
+          echo "  Memory   : $(free -h | awk '/^Mem:/{print $2}')"
+          echo ""
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Branch  : $GITHUB_REF"
+          echo "Commit  : $GITHUB_SHA"
+
+      - name: List Project Files
+        run: |
+          echo "Project structure:"
+          ls -la
