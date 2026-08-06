@@ -1,0 +1,57 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kaniko-build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ars-oldowan
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      KANIKO_VERSION: "v1.22.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Kaniko
+        run: |
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  KANIKO_ARCH="linux-amd64" ;;
+            aarch64) KANIKO_ARCH="linux-arm64"  ;;
+            *)       echo "::error::Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+
+          KANIKO_URL="https://github.com/GoogleContainerTools/kaniko/releases/download/${KANIKO_VERSION}/executor-${KANIKO_ARCH}"
+
+          echo "Downloading Kaniko ${KANIKO_VERSION} for ${KANIKO_ARCH} ..."
+          curl -fsSL "${KANIKO_URL}" -o /kaniko-executor
+          chmod +x /kaniko-executor
+
+          mkdir -p /kaniko/.docker
+          ln -sf /kaniko-executor /kaniko/executor
+
+          echo "Kaniko version:"
+          /kaniko/executor version
+
+      - name: Setup Kaniko Auth
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "{\"auths\":{\"ghcr.io\":{\"username\":\"${GHCR_USERNAME}\",\"password\":\"${GHCR_PASSWORD}\"}}}" > /kaniko/.docker/config.json
+
+      - name: Build and Push with Kaniko
+        run: |
+          /kaniko/executor \
+            --context "${GITHUB_WORKSPACE}/angular" \
+            --dockerfile "${GITHUB_WORKSPACE}/angular/Dockerfile" \
+            --destination "ghcr.io/bennettxxbb/oldowan/oldowan-web:latest" \
+            --cleanup \
+            --verbosity=info
