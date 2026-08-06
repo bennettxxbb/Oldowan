@@ -10,7 +10,7 @@ jobs:
     runs-on: ars-oldowan
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Welcome Message
         run: |
