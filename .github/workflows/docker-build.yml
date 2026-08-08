@@ -12,10 +12,6 @@ jobs:
       contents: read
       packages: write
 
-    env:
-      # 无特权容器内 overlayfs 不可用，使用 vfs 存储驱动
-      STORAGE_DRIVER: vfs
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -53,10 +49,19 @@ jobs:
           # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
           IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/oldowan-web:latest"
 
-          buildah bud \
+          # runner 非 root 时用 sudo 以 root 跑 buildah：rootless 模式需要
+          # /etc/subuid、/etc/subgid 的 userns 映射来解包镜像层，k8s 容器里
+          # 通常没配置，会报 "potentially insufficient UIDs or GIDs"
+          SUDO=""
+          id -u | grep -q '^0$' || SUDO="sudo --preserve-env=REGISTRY_AUTH_FILE"
+
+          # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
+          ${SUDO} buildah bud \
+            --storage-driver vfs \
             -f angular/Dockerfile \
             -t "${IMAGE}" \
             angular
-          buildah push --tls-verify=true \
+          ${SUDO} buildah push --tls-verify=true \
+            --storage-driver vfs \
             "${IMAGE}" \
             docker://"${IMAGE}"
