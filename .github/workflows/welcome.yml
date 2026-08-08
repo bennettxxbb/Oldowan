@@ -33,3 +33,24 @@ jobs:
         run: |
           echo "Project structure:"
           ls -la
+
+      - name: Network Connectivity Check
+        run: |
+          echo "Checking connectivity to GitHub and Google..."
+          echo ""
+
+          # debian:latest may not ship curl — install it if missing
+          command -v curl >/dev/null 2>&1 || {
+            DEBIAN_FRONTEND=noninteractive apt-get update -qq \
+              && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl
+          }
+
+          for entry in "GitHub|https://github.com" "Google|https://www.google.com"; do
+            name="${entry%%|*}"
+            url="${entry##*|}"
+            if code=$(curl -sI --max-time 15 -o /dev/null -w "%{http_code}" "$url" 2>/dev/null); then
+              echo "✅ $name reachable ($url) — HTTP $code"
+            else
+              echo "❌ $name unreachable ($url)"
+            fi
+          done
