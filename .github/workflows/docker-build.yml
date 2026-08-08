@@ -56,8 +56,12 @@ jobs:
           id -u | grep -q '^0$' || SUDO="sudo --preserve-env=REGISTRY_AUTH_FILE"
 
           # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
+          # --isolation chroot：无特权 pod 里 /sys/fs/cgroup 只读，
+          # crun 创建 cgroup 会失败；chroot 隔离跳过 OCI runtime，
+          # RUN 直接在容器根文件系统执行（网络共用 pod，npm 可联网）
           ${SUDO} buildah bud \
             --storage-driver vfs \
+            --isolation chroot \
             -f angular/Dockerfile \
             -t "${IMAGE}" \
             angular
