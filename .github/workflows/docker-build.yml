@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  kaniko-build:
+  buildah-build:
     if: github.ref == 'refs/heads/main'
     runs-on: ars-oldowan
 
@@ -13,45 +13,47 @@ jobs:
       packages: write
 
     env:
-      KANIKO_VERSION: "v1.22.0"
+      # 无特权容器内 overlayfs 不可用，使用 vfs 存储驱动
+      STORAGE_DRIVER: vfs
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Kaniko
+      # Buildah 是标准发行版软件包，可以直接装进 runner 镜像
+      - name: Install Buildah
         run: |
-          ARCH=$(uname -m)
-          case "${ARCH}" in
-            x86_64)  KANIKO_ARCH="linux-amd64" ;;
-            aarch64) KANIKO_ARCH="linux-arm64"  ;;
-            *)       echo "::error::Unsupported architecture: ${ARCH}"; exit 1 ;;
-          esac
+          SUDO=""
+          id -u | grep -q '^0$' || SUDO="sudo"
 
-          KANIKO_URL="https://github.com/GoogleContainerTools/kaniko/releases/download/${KANIKO_VERSION}/executor-${KANIKO_ARCH}"
+          if command -v apt >/dev/null; then
+            ${SUDO} apt update -qq && ${SUDO} apt install -y -qq buildah
+          elif command -v dnf >/dev/null; then
+            ${SUDO} dnf install -y buildah
+          elif command -v yum >/dev/null; then
+            ${SUDO} yum install -y buildah
+          else
+            echo "::error::No supported package manager found (apt/dnf/yum)"
+            exit 1
+          fi
+          buildah --version
 
-          echo "Downloading Kaniko ${KANIKO_VERSION} for ${KANIKO_ARCH} ..."
-          curl -fsSL "${KANIKO_URL}" -o /kaniko-executor
-          chmod +x /kaniko-executor
-
-          mkdir -p /kaniko/.docker
-          ln -sf /kaniko-executor /kaniko/executor
-
-          echo "Kaniko version:"
-          /kaniko/executor version
-
-      - name: Setup Kaniko Auth
+      - name: Setup Registry Auth
         env:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "{\"auths\":{\"ghcr.io\":{\"username\":\"${GHCR_USERNAME}\",\"password\":\"${GHCR_PASSWORD}\"}}}" > /kaniko/.docker/config.json
+          mkdir -p "${GITHUB_WORKSPACE}/.docker"
+          echo "{\"auths\":{\"ghcr.io\":{\"username\":\"${GHCR_USERNAME}\",\"password\":\"${GHCR_PASSWORD}\"}}}" > "${GITHUB_WORKSPACE}/.docker/config.json"
 
-      - name: Build and Push with Kaniko
+      - name: Build and Push with Buildah
+        env:
+          REGISTRY_AUTH_FILE: ${{ github.workspace }}/.docker/config.json
         run: |
-          /kaniko/executor \
-            --context "${GITHUB_WORKSPACE}/angular" \
-            --dockerfile "${GITHUB_WORKSPACE}/angular/Dockerfile" \
-            --destination "ghcr.io/bennettxxbb/oldowan/oldowan-web:latest" \
-            --cleanup \
-            --verbosity=info
+          buildah bud \
+            -f angular/Dockerfile \
+            -t ghcr.io/${GITHUB_REPOSITORY}/oldowan-web:latest \
+            angular
+          buildah push --tls-verify=true \
+            ghcr.io/${GITHUB_REPOSITORY}/oldowan-web:latest \
+            docker://ghcr.io/${GITHUB_REPOSITORY}/oldowan-web:latest
