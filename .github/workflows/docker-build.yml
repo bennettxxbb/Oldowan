@@ -37,7 +37,7 @@ jobs:
       - name: Build and Push with Buildah
         env:
           GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
         run: |
           # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
           IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/oldowan-web:latest"
