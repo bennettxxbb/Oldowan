@@ -16,7 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # Buildah 是标准发行版软件包，可以直接装进 runner 镜像
       - name: Install Buildah
         run: |
           SUDO=""
@@ -37,7 +36,7 @@ jobs:
       - name: Setup Registry Auth
         env:
           GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
         run: |
           mkdir -p "${GITHUB_WORKSPACE}/.docker"
           echo "{\"auths\":{\"ghcr.io\":{\"username\":\"${GHCR_USERNAME}\",\"password\":\"${GHCR_PASSWORD}\"}}}" > "${GITHUB_WORKSPACE}/.docker/config.json"
