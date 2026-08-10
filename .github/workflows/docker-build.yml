@@ -16,55 +16,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # 脚本假设 runner 以 root 运行（pod securityContext.runAsUser: 0），不使用 sudo
       - name: Install Buildah
         run: |
-          SUDO=""
-          id -u | grep -q '^0$' || SUDO="sudo"
-
           if command -v apt >/dev/null; then
-            ${SUDO} apt update -qq && ${SUDO} apt install -y -qq buildah
+            apt update -qq && apt install -y -qq buildah
           elif command -v dnf >/dev/null; then
-            ${SUDO} dnf install -y buildah
+            dnf install -y buildah
           elif command -v yum >/dev/null; then
-            ${SUDO} yum install -y buildah
+            yum install -y buildah
           else
             echo "::error::No supported package manager found (apt/dnf/yum)"
             exit 1
           fi
           buildah --version
 
-      - name: Setup Registry Auth
-        env:
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
-        run: |
-          mkdir -p "${GITHUB_WORKSPACE}/.docker"
-          echo "{\"auths\":{\"ghcr.io\":{\"username\":\"${GHCR_USERNAME}\",\"password\":\"${GHCR_PASSWORD}\"}}}" > "${GITHUB_WORKSPACE}/.docker/config.json"
-
+      # 凭证通过 buildah push 的 --creds 显式传入，不再写 config.json
       - name: Build and Push with Buildah
         env:
-          REGISTRY_AUTH_FILE: ${{ github.workspace }}/.docker/config.json
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
           IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/oldowan-web:latest"
-
-          # runner 非 root 时用 sudo 以 root 跑 buildah：rootless 模式需要
-          # /etc/subuid、/etc/subgid 的 userns 映射来解包镜像层，k8s 容器里
-          # 通常没配置，会报 "potentially insufficient UIDs or GIDs"
-          SUDO=""
-          id -u | grep -q '^0$' || SUDO="sudo --preserve-env=REGISTRY_AUTH_FILE"
 
           # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
           # --isolation chroot：无特权 pod 里 /sys/fs/cgroup 只读，
           # crun 创建 cgroup 会失败；chroot 隔离跳过 OCI runtime，
           # RUN 直接在容器根文件系统执行（网络共用 pod，npm 可联网）
-          ${SUDO} buildah bud \
+          buildah bud \
             --storage-driver vfs \
             --isolation chroot \
             -f angular/Dockerfile \
             -t "${IMAGE}" \
             angular
-          ${SUDO} buildah push --tls-verify=true \
+          buildah push --tls-verify=true \
             --storage-driver vfs \
+            --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
             "${IMAGE}" \
             docker://"${IMAGE}"
