@@ -1,0 +1,59 @@
+name: Build and Push Devops Buildah Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-base-image:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ars-oldowan
+    container:
+      image: debian:latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # 脚本假设 runner 以 root 运行（pod securityContext.runAsUser: 0），不使用 sudo
+      - name: Install Buildah
+        run: |
+          if command -v apt >/dev/null; then
+            apt update -qq && apt install -y -qq buildah
+          elif command -v dnf >/dev/null; then
+            dnf install -y buildah
+          elif command -v yum >/dev/null; then
+            yum install -y buildah
+          else
+            echo "::error::No supported package manager found (apt/dnf/yum)"
+            exit 1
+          fi
+          buildah --version
+
+      # 凭证通过 buildah push 的 --creds 显式传入，不再写 config.json
+      - name: Build and Push Devops Base Image with Buildah
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/oldowan-devops-buildah:latest"
+
+          # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
+          # --isolation chroot：无特权 pod 里 /sys/fs/cgroup 只读，
+          # crun 创建 cgroup 会失败；chroot 隔离跳过 OCI runtime，
+          # RUN 直接在容器根文件系统执行（网络共用 pod，apt 可联网）
+          buildah bud \
+            --storage-driver vfs \
+            --isolation chroot \
+            -f devops/image/buildah/Dockerfile \
+            -t "${IMAGE}" \
+            devops/image/buildah
+          buildah push --tls-verify=true \
+            --storage-driver vfs \
+            --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
+            "${IMAGE}" \
+            docker://"${IMAGE}"

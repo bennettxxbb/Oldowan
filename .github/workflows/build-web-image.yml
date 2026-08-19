@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  buildah-build:
+  build-web-image:
     if: github.ref == 'refs/heads/main'
     runs-on: ars-oldowan
     container:
