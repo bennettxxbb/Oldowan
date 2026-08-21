@@ -4,7 +4,3 @@ LABEL org.opencontainers.image.description="Oldowan devops base image"
 LABEL org.opencontainers.image.licenses="MIT"
 
 FROM debian
-
-# Buildah — build OCI images without a daemon (used by the Docker build workflow)
-RUN apt update \
-    && apt install -y buildah

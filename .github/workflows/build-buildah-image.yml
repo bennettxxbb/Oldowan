@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-base-image:
+  build-buildah-image:
     if: github.ref == 'refs/heads/main'
     runs-on: ars-oldowan
     container:
-      image: debian:latest
+      image: ghcr.io/bennettxxbb/oldowan/oldowan-devops-buildah:latest
 
     permissions:
       contents: read
@@ -17,21 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      # 脚本假设 runner 以 root 运行（pod securityContext.runAsUser: 0），不使用 sudo
-      - name: Install Buildah
-        run: |
-          if command -v apt >/dev/null; then
-            apt update -qq && apt install -y -qq buildah
-          elif command -v dnf >/dev/null; then
-            dnf install -y buildah
-          elif command -v yum >/dev/null; then
-            yum install -y buildah
-          else
-            echo "::error::No supported package manager found (apt/dnf/yum)"
-            exit 1
-          fi
-          buildah --version
 
       # 凭证通过 buildah push 的 --creds 显式传入，不再写 config.json
       - name: Build and Push Devops Base Image with Buildah

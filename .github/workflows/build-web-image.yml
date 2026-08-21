@@ -8,7 +8,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ars-oldowan
     container:
-      image: debian:latest
+      image: ghcr.io/bennettxxbb/oldowan/oldowan-devops-buildah:latest
 
     permissions:
       contents: read
