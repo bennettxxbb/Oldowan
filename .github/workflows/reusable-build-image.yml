@@ -47,13 +47,13 @@ jobs:
           buildah bud \
             --storage-driver vfs \
             --isolation chroot \
+            --label "org.opencontainers.image.source https://github.com/${REPO_LOWER}" \
             -f ${{ inputs.dockerfile }} \
             -t "${IMAGE}" \
             ${{ inputs.context }}
           buildah push --tls-verify=true \
             --storage-driver vfs \
             --format oci \
-            --label "org.opencontainers.image.source https://github.com/${REPO_LOWER}" \
             --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
             "${IMAGE}" \
             docker://"${IMAGE}"
