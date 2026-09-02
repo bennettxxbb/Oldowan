@@ -18,21 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # 脚本假设 runner 以 root 运行（pod securityContext.runAsUser: 0），不使用 sudo
-      - name: Install Buildah
-        run: |
-          if command -v apt >/dev/null; then
-            apt update -qq && apt install -y -qq buildah
-          elif command -v dnf >/dev/null; then
-            dnf install -y buildah
-          elif command -v yum >/dev/null; then
-            yum install -y buildah
-          else
-            echo "::error::No supported package manager found (apt/dnf/yum)"
-            exit 1
-          fi
-          buildah --version
-
       # 凭证通过 buildah push 的 --creds 显式传入，不再写 config.json
       - name: Build and Push with Buildah
         env:
