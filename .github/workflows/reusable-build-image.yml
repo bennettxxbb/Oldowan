@@ -38,6 +38,7 @@ jobs:
         run: |
           # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
           IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/${{ inputs.image_name }}:latest"
+          REPO_LOWER="${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]'
 
           # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
           # --isolation chroot：无特权 pod 里 /sys/fs/cgroup 只读，
@@ -52,6 +53,7 @@ jobs:
           buildah push --tls-verify=true \
             --storage-driver vfs \
             --format oci \
+            --label "org.opencontainers.image.source https://github.com/${REPO_LOWER}" \
             --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
             "${IMAGE}" \
             docker://"${IMAGE}"
