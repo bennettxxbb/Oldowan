@@ -17,7 +17,7 @@ on:
         type: string
 
 jobs:
-  buildah-build-and-push:
+  image-build-and-push:
     runs-on: ars-oldowan
     container:
       image: ghcr.io/bennettxxbb/oldowan/oldowan-devops-buildah:latest
