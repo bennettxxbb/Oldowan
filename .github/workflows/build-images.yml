@@ -1,0 +1,46 @@
+name: Build and Push Docker Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Select image(s) to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - base
+          - buildah
+          - web
+
+jobs:
+  # 基础镜像：devops/image/base
+  build-base-image:
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'base')
+    uses: ./.github/workflows/reusable-build-image.yml
+    with:
+      image_name: oldowan-devops-base
+      dockerfile: devops/image/base/Dockerfile
+      context: devops/image/base
+    secrets: inherit
+
+  # 构建工具镜像：devops/image/buildah
+  build-buildah-image:
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'buildah')
+    uses: ./.github/workflows/reusable-build-image.yml
+    with:
+      image_name: oldowan-devops-buildah
+      dockerfile: devops/image/buildah/Dockerfile
+      context: devops/image/buildah
+    secrets: inherit
+
+  # Web 前端镜像：angular
+  build-web-image:
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'web')
+    uses: ./.github/workflows/reusable-build-image.yml
+    with:
+      image_name: oldowan-web
+      dockerfile: angular/Dockerfile
+      context: angular
+    secrets: inherit

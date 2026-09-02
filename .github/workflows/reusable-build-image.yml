@@ -1,11 +1,23 @@
-name: Build and Push Docker Image
+name: Reusable Buildah Build & Push Image
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      image_name:
+        description: 'Image name (without ghcr repo prefix), e.g. oldowan-web'
+        required: true
+        type: string
+      dockerfile:
+        description: 'Path to the Dockerfile'
+        required: true
+        type: string
+      context:
+        description: 'Build context directory'
+        required: true
+        type: string
 
 jobs:
-  build-web-image:
-    if: github.ref == 'refs/heads/main'
+  buildah-build-and-push:
     runs-on: ars-oldowan
     container:
       image: ghcr.io/bennettxxbb/oldowan/oldowan-devops-buildah:latest
@@ -19,24 +31,24 @@ jobs:
         uses: actions/checkout@v5
 
       # 凭证通过 buildah push 的 --creds 显式传入，不再写 config.json
-      - name: Build and Push with Buildah
+      - name: Build and Push ${{ inputs.image_name }} with Buildah
         env:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
         run: |
           # GITHUB_REPOSITORY 含大写（Oldowan），docker 仓库名必须全小写
-          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/oldowan-web:latest"
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')/${{ inputs.image_name }}:latest"
 
           # 无特权容器内 overlayfs 不可用，显式指定 vfs 存储驱动
           # --isolation chroot：无特权 pod 里 /sys/fs/cgroup 只读，
           # crun 创建 cgroup 会失败；chroot 隔离跳过 OCI runtime，
-          # RUN 直接在容器根文件系统执行（网络共用 pod，npm 可联网）
+          # RUN 直接在容器根文件系统执行（网络共用 pod，apt/npm 可联网）
           buildah bud \
             --storage-driver vfs \
             --isolation chroot \
-            -f angular/Dockerfile \
+            -f ${{ inputs.dockerfile }} \
             -t "${IMAGE}" \
-            angular
+            ${{ inputs.context }}
           buildah push --tls-verify=true \
             --storage-driver vfs \
             --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
