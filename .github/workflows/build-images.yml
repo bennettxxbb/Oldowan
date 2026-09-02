@@ -14,6 +14,10 @@ on:
           - buildah
           - web
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # 基础镜像：devops/image/base
   build-base-image:
