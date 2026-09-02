@@ -47,7 +47,7 @@ jobs:
           buildah bud \
             --storage-driver vfs \
             --isolation chroot \
-            --label "org.opencontainers.image.source https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             -f ${{ inputs.dockerfile }} \
             -t "${IMAGE}" \
             ${{ inputs.context }}
