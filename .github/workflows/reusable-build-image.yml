@@ -51,6 +51,7 @@ jobs:
             ${{ inputs.context }}
           buildah push --tls-verify=true \
             --storage-driver vfs \
+            --format oci \
             --creds "${GHCR_USERNAME}:${GHCR_PASSWORD}" \
             "${IMAGE}" \
             docker://"${IMAGE}"
