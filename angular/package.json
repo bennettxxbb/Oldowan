@@ -19,9 +19,10 @@
     "@angular/material": "^22.1.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "hucre": "^0.6.2",
+    "pinyin-pro": "^3.29.5",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0",
-    "hucre": "^0.6.2"
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@angular/build": "^22.0.8",

@@ -1,0 +1,67 @@
+<div class="tool-container">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>姓名转护照拼音工具</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- File Upload -->
+      <div class="field-row">
+        <label class="field-label">上传姓名Excel文件（无表头，第一列为姓名）</label>
+        <div class="file-upload-row">
+          <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileChange($event)" />
+          <button mat-stroked-button type="button" (click)="fileInput.click()">选择文件</button>
+          @if (selectedFileName()) {
+            <span class="file-name">{{ selectedFileName() }}</span>
+            <button mat-button type="button" (click)="clearFile()">清除</button>
+          }
+        </div>
+      </div>
+
+      @if (rows().length > 0) {
+        <!-- Actions -->
+        <div class="button-row">
+          <button mat-raised-button color="primary" (click)="downloadXlsx()">
+            下载Excel（共 {{ rows().length }} 条）
+          </button>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-scroll">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>姓名拼音</th>
+                <th>姓</th>
+                <th>名</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of previewRows(); track $index) {
+                <tr
+                  [class.flagged]="row.reviewReasons.length > 0"
+                  [attr.title]="row.reviewReasons.length > 0 ? row.reviewReasons.join('、') : null"
+                >
+                  <td>{{ row.originalName }}</td>
+                  <td>{{ row.fullPinyin }}</td>
+                  <td>{{ row.surnamePinyin }}</td>
+                  <td>{{ row.givenNamePinyin }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (rows().length > previewLimit) {
+          <p class="preview-note">仅预览前 {{ previewLimit }} 条。</p>
+        }
+        @if (hasFlaggedRows()) {
+          <p class="preview-note">
+            <span class="legend-swatch"></span>
+            已标黄的姓名为复姓、疑似藏族名、含非汉字字符或四个字及以上，建议人工复核。
+          </p>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
