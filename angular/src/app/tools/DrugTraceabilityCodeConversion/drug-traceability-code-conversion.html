@@ -1,4 +1,118 @@
 <div class="tool-container">
+  <!-- 药品追溯码提取工具 -->
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>药品追溯码提取工具</mat-card-title>
+      <mat-card-subtitle>
+        从XML中提取追溯码，生成的Excel可直接作为下方转换工具的输入
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- File Upload -->
+      <div class="field-row">
+        <label class="field-label">
+          上传XML文件（可多选，提取所有Data节点的Code属性，生成单列Excel）
+        </label>
+        <div class="file-upload-row">
+          <input
+            #xmlInput
+            type="file"
+            accept=".xml,text/xml,application/xml"
+            multiple
+            hidden
+            (change)="onXmlFilesChange($event)"
+          />
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="extracting()"
+            (click)="xmlInput.click()"
+          >
+            选择文件
+          </button>
+          @if (extracting()) {
+            <span class="file-name">
+              正在解析 {{ extractionProcessed() }} / {{ extractionTotal() }} 个文件…
+            </span>
+          } @else {
+            @if (extractionResult(); as result) {
+              <span class="file-name">{{ result.fileCount }} 个文件</span>
+              <button mat-button type="button" (click)="clearExtraction()">清除</button>
+            }
+          }
+        </div>
+      </div>
+
+      @if (extracting()) {
+        <mat-progress-bar mode="determinate" [value]="extractionPercent()" />
+      }
+
+      @if (extractionResult(); as result) {
+        <p class="result-summary">
+          成功解析 {{ result.successCount }} 个文件，共提取
+          <strong>{{ result.codes.length }}</strong> 个追溯码。
+          @if (result.failures.length > 0) {
+            <span class="failure-count">{{ result.failures.length }} 个文件解析失败。</span>
+          }
+        </p>
+
+        @if (result.codes.length > 0) {
+          <!-- Actions -->
+          <div class="button-row">
+            <button mat-raised-button color="primary" (click)="downloadExtractedXlsx()">
+              下载Excel（共 {{ result.codes.length }} 条）
+            </button>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-scroll">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>追溯码</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (code of extractedPreview(); track $index) {
+                  <tr>
+                    <td>{{ code }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (result.codes.length > extractionPreviewLimit) {
+            <p class="preview-note">仅预览前 {{ extractionPreviewLimit }} 条。</p>
+          }
+        }
+
+        @if (result.failures.length > 0) {
+          <p class="failure-title">解析失败的文件</p>
+          <div class="preview-scroll">
+            <table class="preview-table failure-table">
+              <thead>
+                <tr>
+                  <th>文件名</th>
+                  <th>原因</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (failure of result.failures; track $index) {
+                  <tr>
+                    <td class="failure-file">{{ failure.fileName }}</td>
+                    <td>{{ failure.reason }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- 药品追溯码转XML工具 -->
   <mat-card appearance="outlined">
     <mat-card-header>
       <mat-card-title>药品追溯码转XML工具</mat-card-title>
@@ -9,7 +123,13 @@
       <div class="field-row">
         <label class="field-label">上传Excel文件</label>
         <div class="file-upload-row">
-          <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileChange($event)" />
+          <input
+            #fileInput
+            type="file"
+            accept=".xlsx,.xls"
+            hidden
+            (change)="onFileChange($event)"
+          />
           <button mat-stroked-button type="button" (click)="fileInput.click()">选择文件</button>
           @if (selectedFileName()) {
             <span class="file-name">{{ selectedFileName() }}</span>
@@ -60,11 +180,7 @@
         >
           生成XML
         </button>
-        <button
-          mat-stroked-button
-          [disabled]="!generatedXml()"
-          (click)="downloadXml()"
-        >
+        <button mat-stroked-button [disabled]="!generatedXml()" (click)="downloadXml()">
           下载XML
         </button>
       </div>
